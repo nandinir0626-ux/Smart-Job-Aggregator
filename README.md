@@ -1,257 +1,403 @@
-# 🚀 SmartJobs: Real-Time AI Job Aggregator & Recommendation Engine
-
-[![React](https://img.shields.io/badge/React_18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
-[![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Express.js](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge)](https://expressjs.com/)
-[![Python](https://img.shields.io/badge/Python_3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![Celery](https://img.shields.io/badge/Celery-37814A?style=for-the-badge&logo=celery&logoColor=white)](https://docs.celeryq.dev/)
-[![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)](https://www.rabbitmq.com/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Socket.io](https://img.shields.io/badge/Socket.io-010101?style=for-the-badge&logo=socket.io&logoColor=white)](https://socket.io/)
-[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-
-**SmartJobs** is a distributed, production-ready AI job intelligence platform. It aggregates live technical postings from diverse sources, normalizes and deduplicates them using cryptographic fingerprints and dense vector embeddings, extracts candidate resumes into strict Pydantic schemas, and delivers real-time personalized recommendations with explainability, skill-gap analysis, instant WebSocket alerts, and rate-limited email notifications.
+<div align="center">
+  <h1>SmartJobs</h1>
+  <p><strong>Real-time AI job aggregator and recommendation engine</strong></p>
+  <p>Crawl live tech jobs, deduplicate them with fingerprints and embeddings, parse your resume into structured data, and get explainable matches pushed to you the moment they appear.</p>
+  <p>
+    <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB" alt="React" /></a>
+    <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-43853D?style=flat-square&logo=node.js&logoColor=white" alt="Node.js" /></a>
+    <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" /></a>
+    <a href="https://docs.celeryq.dev/"><img src="https://img.shields.io/badge/Celery-37814A?style=flat-square&logo=celery&logoColor=white" alt="Celery" /></a>
+    <a href="https://www.rabbitmq.com/"><img src="https://img.shields.io/badge/RabbitMQ-FF6600?style=flat-square&logo=rabbitmq&logoColor=white" alt="RabbitMQ" /></a>
+    <a href="https://www.mongodb.com/"><img src="https://img.shields.io/badge/MongoDB-4EA94B?style=flat-square&logo=mongodb&logoColor=white" alt="MongoDB" /></a>
+    <a href="https://www.docker.com/"><img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker" /></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License: MIT" /></a>
+  </p>
+  <p>
+    <a href="#features">Features</a> &middot;
+    <a href="#architecture">Architecture</a> &middot;
+    <a href="#quick-start">Quick start</a> &middot;
+    <a href="#configuration">Configuration</a> &middot;
+    <a href="#api-reference">API</a> &middot;
+    <a href="#testing-and-evaluation">Testing</a> &middot;
+    <a href="#known-limitations-and-roadmap">Roadmap</a>
+  </p>
+</div>
 
 ---
 
-## 📸 Screenshots & Showcase
+## Screenshots
 
-| AI Match Dashboard & Real-Time Notification Bell | Ranked Recommendations & Explainability |
+| Dashboard and live notification bell | Ranked recommendations with explanations |
 | :---: | :---: |
-| ![SmartJobs Dashboard](docs/screenshots/dashboard.png) | ![Ranked Recommendations](docs/screenshots/recommendations.png) |
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Recommendations](docs/screenshots/recommendations.png) |
 
-| User Preferences & Threshold Control |
+| Preferences and match threshold |
 | :---: |
-| ![User Preferences](docs/screenshots/preferences.png) |
+| ![Preferences](docs/screenshots/preferences.png) |
+
+A 3-minute guided walkthrough is available in [scripts/demo.md](scripts/demo.md).
 
 ---
 
-## 🏗️ System Architecture
+## Why SmartJobs
 
-```mermaid
-flowchart TD
-    subgraph Sources ["🌐 Pluggable Ingestion Layer"]
-        ADZ["Adzuna API"]
-        REM["Remotive API"]
-        SED["Seed Database (165+ Postings)"]
-    end
+Standard job portals frequently present duplicate listings, rely on raw keyword matching, and offer no transparency regarding why a specific job matches a candidate's background. SmartJobs addresses these limitations directly:
 
-    subgraph Broker ["📨 Distributed Message Broker & Storage"]
-        RMQ["RabbitMQ Broker<br/>(Exchange: events)"]
-        MDB[("MongoDB<br/>Primary Source of Truth")]
-        FSS["FAISS In-Memory Cache<br/>(IndexFlatIP, 384-d Cosine)"]
-    end
-
-    subgraph CeleryWorker ["⚙️ Celery Distributed Workers (Python 3.11)"]
-        CBEAT["Celery Beat<br/>(Periodic Scheduled Crawl)"]
-        CTASKS["crawl_sources Task<br/>- API fetch & batch dispatch"]
-        PTASKS["process_job Task<br/>- SHA-1 Fingerprint & Cosine Dedupe<br/>- RapidFuzz Skill Normalization<br/>- BGE Embedding Generation"]
-        RTASKS["parse_resume Task<br/>- PyMuPDF / python-docx Extraction<br/>- Gemini / Ollama / Heuristic LLM<br/>- Strict Pydantic Schema Validation"]
-        MTASKS["match_job_to_users Task<br/>- 4-Factor Hybrid AI Scoring<br/>- Explainable Match Rationale Engine"]
-        ETASKS["send_email Task<br/>- Safe SMTP Dispatch (Max 5/day, >=75%)<br/>- Brevo / Resend / Console"]
-    end
-
-    subgraph BackendAPI ["🚀 Node.js + Express Gateway"]
-        EXPRESS["Express Server (Port 5000)<br/>- JWT Auth & Rate Limiting<br/>- Multer Resume Upload Pipeline<br/>- RESTful Controller Layer"]
-        SIO["Socket.IO Server<br/>- Room: user:id"]
-        AMQP_CONS["amqplib Events Consumer<br/>- notification.created<br/>- resume.processed"]
-    end
-
-    subgraph FrontendUI ["💻 React 18 + Vite Single-Page Application"]
-        DASH["Dashboard & Recommendations<br/>- Match Percentage & Rationale<br/>- Real-Time Market Skill Gap Analysis"]
-        SRCH["Live Search & Filtering<br/>- Keyword, Location, Remote, Skills"]
-        PROF["Candidate Profile & AI Skill Hub<br/>- Live Resume Upload & Parsing Progress<br/>- Canonical Skill Editor"]
-        TRCK["Application Tracker<br/>- Saved / Applied / Interview / Rejected"]
-        NOTIF["Notification Bell<br/>- Unread Badge & WebSocket Feed"]
-    end
-
-    %% Ingestion Flow
-    CBEAT --> CTASKS
-    ADZ --> CTASKS
-    REM --> CTASKS
-    SED --> CTASKS
-    CTASKS --> PTASKS
-    PTASKS --> MDB
-    PTASKS --> FSS
-    PTASKS --> MTASKS
-
-    %% Resume Flow
-    EXPRESS -->|Enqueue parse_resume| RMQ
-    RMQ -->|Consume Tasks| RTASKS
-    RTASKS --> MDB
-    RTASKS -->|Publish resume.processed| RMQ
-
-    %% Matching & Notification Flow
-    MTASKS -->|Score >= Threshold| MDB
-    MTASKS -->|Publish notification.created| RMQ
-    MTASKS -->|Qualified & Match >= 75%| ETASKS
-
-    %% Real-Time WebSocket Delivery
-    RMQ -->|Consume Events| AMQP_CONS
-    AMQP_CONS --> SIO
-    SIO -->|Instant Socket Event| NOTIF
-    SIO -->|Status Update| PROF
-
-    %% Client Communication
-    FrontendUI <-->|REST API + JWT Auth| EXPRESS
-    FrontendUI <-->|Bi-directional WebSockets| SIO
-```
+- **Unified Catalog**: Postings aggregated across multiple sources are normalized, with redundant entries consolidated rather than duplicated.
+- **Explainable Matching**: Every recommended position details its composite match percentage, aligned competencies, missing skill gaps, and a plain-text rationale.
+- **Focused Notifications**: High-confidence opportunities trigger immediate in-app WebSocket updates, accompanied by strictly rate-limited email dispatches.
 
 ---
 
-## ✨ Key Features
+## Features
 
-### 1. 🤖 Multi-Tier Resume Parsing & Normalization
-- Accepts `.pdf` and `.docx` candidate resumes.
-- Text extracted via **PyMuPDF (`fitz`)** and **`python-docx`** without external OS dependencies.
-- Structured candidate data (`skills`, `experience`, `projects`, `education`) extracted using strict **Pydantic schemas** with automatic JSON-repair retry loops and deterministic offline regex fallbacks.
-- **431+ Canonical Tech Skills** dictionary normalized via **RapidFuzz** fuzzy token ratio matching (e.g., `k8s` → `Kubernetes`, `reactjs` → `React`).
+### Job Ingestion and Deduplication
+- **Pluggable Sources**: Built-in support for Remotive, Arbeitnow, Greenhouse, Lever, and a bundled dataset of 165 offline seed postings. New sources subclass `JobSource` and register in `worker/sources/__init__.py`.
+- **Scheduled Crawling**: Celery Beat runs ingestion tasks at regular intervals (`CRAWL_INTERVAL_MINUTES`, default 15 minutes).
+- **Two-Tier Deduplication**:
+  - *Exact*: Cryptographic `SHA-1(title + company + location)` fingerprint verified in an initial batched query before queuing background processing.
+  - *Near-Duplicate*: Same company and embedding cosine similarity of 0.92 or greater. Near-duplicates are merged into the canonical posting and tracked in `alsoOn[]`.
+- **Normalization**: Skills mapped to a 431-term canonical tech dictionary via RapidFuzz token matching (e.g., `k8s` maps to `Kubernetes`), alongside multi-currency salary normalization.
 
-### 2. 🎯 Explainable 4-Factor Hybrid Recommendation Engine
-Rather than relying purely on simple keyword matching or raw vector distance, candidate-job alignment is scored using a multi-factor formula:
+### Resume Intelligence
+- **Multi-Format Extraction**: Ingests PDF and DOCX files through PyMuPDF and python-docx without external binary dependencies.
+- **Strict Schema Enforcement**: Candidate data (skills, experience, projects, education) is parsed and validated against strict Pydantic models with automated JSON repair retries.
+- **Swappable LLM Providers**: Configurable between Google Gemini, local Ollama, and an offline heuristic parser fallback.
+- **Privacy Shield**: A PII redactor removes telephone numbers, physical addresses, and postal codes before sending text to external LLM providers.
+- **Profile Synchronization**: Extracted skills remain fully editable within the user profile interface; modifications trigger automatic vector re-indexing.
 
-$$\text{Final Score} = 0.50 \cdot S_{\text{cosine}} + 0.30 \cdot S_{\text{skills}} + 0.10 \cdot S_{\text{location}} + 0.10 \cdot S_{\text{recency}}$$
+### Explainable Hybrid Ranking
+Recommendations are calculated using a weighted multi-signal scoring function:
 
-- **Dense Vector Cosine Similarity ($S_{\text{cosine}}$):** `BAAI/bge-small-en-v1.5` embeddings (384 dimensions) with asymmetric search query prefixes, evaluated via **FAISS `IndexFlatIP`**.
-- **Skill Overlap Ratio ($S_{\text{skills}}$):** Exact canonical overlap $\frac{|\text{User Skills} \cap \text{Job Skills}|}{|\text{Job Skills}|}$.
-- **Location & Remote Preference ($S_{\text{location}}$):** Weighted matching for remote flexibility and target geographic markets.
-- **Recency Decay ($S_{\text{recency}}$):** Exponential decay $e^{-\ln(2) \cdot \frac{\text{Days Ago}}{14}}$ (14-day half-life).
-- **Explainability:** Generates human-readable match explanations (e.g., *"Matched all 12 key skills including Node.js, React, Git. Consider learning AWS"*).
+$$\text{Score} = 0.50 \cdot S_{\text{semantic}} + 0.30 \cdot S_{\text{skills}} + 0.10 \cdot S_{\text{location}} + 0.10 \cdot S_{\text{recency}}$$
 
-### 3. 🛡️ Safe SMTP Dispatch & Anti-Spam Rate Limiter
-- **5 Emails / Day Limit:** Built-in daily dispatch counter (`emailsSentToday` with automatic 24-hour UTC reset) prevents mailbox flooding.
-- **High-Relevance Threshold:** Transactional emails are dispatched **only** when candidate match scores reach $\ge 75\%$.
-- **Gmail SMTP / Brevo / Resend Support:** Configurable email transport with responsive HTML job cards.
+| Signal | Evaluation Method |
+|---|---|
+| Semantic | Cosine similarity of `BAAI/bge-small-en-v1.5` embeddings (384 dimensions, evaluated via FAISS `IndexFlatIP`) |
+| Skills | Ratio of overlapping canonical skills: $\frac{|\text{User Skills} \cap \text{Job Skills}|}{|\text{Job Skills}|}$ |
+| Location | Alignment between candidate remote preferences and job requirements |
+| Recency | Exponential half-life decay function over a 14-day duration |
 
-### 4. ⚡ Real-Time WebSocket Push Notifications
-- As Celery workers finish matching newly crawled jobs, events are published to RabbitMQ.
-- The Node.js AMQP consumer captures `notification.created` events and immediately emits them to user-specific **Socket.IO** rooms.
-- In-app notification bell updates instantly without page refreshes.
+Weights, thresholds, and decay parameters are fully configurable through environment variables. Every output includes `matchedSkills`, `missingSkills`, and an explainability summary.
 
-### 5. 🔍 Two-Tier Deduplication Engine
-- **Exact Duplicates:** Fast cryptographic `SHA-1(normalized_title + company + location)` hash indexing.
-- **Near-Duplicates:** Semantic vector comparison across identical companies. If cosine similarity $\ge 0.92$, duplicate postings are merged and linked via `alsoOn[]`.
+### Real-Time Delivery
+- Matches trigger `notification.created` events dispatched to a RabbitMQ topic exchange.
+- The Node.js API layer consumes AMQP messages and routes them directly to user-specific Socket.IO channels for instant in-app alerts without page refreshes. Resume extraction status updates (`resume.processed`) follow the same pathway.
+- Email alerts are dispatched exclusively for high-confidence matches ($\ge 75\%$), capped at 5 emails per rolling 24-hour window per user. Supported providers include standard SMTP, Brevo, Resend, and local console logging.
+
+### Application and Career Tooling
+- **Application Pipeline**: Kanban-style status tracking covering Saved, Applied, Interview, and Rejected states.
+- **Market Skill Gap Analysis**: Aggregated market analytics identifying high-demand technologies missing from the candidate's profile.
+- **Career Intelligence Endpoints**: Automated utilities for resume tailoring, interview prep questions, cover letter generation, and skill-learning roadmaps.
+
+### Authentication and Security
+- Complete authentication flow: email verification codes, login, token refresh, logout, and password recovery.
+- Passwords secured with bcrypt (10 salt rounds); API protected via Bearer JWT authentication.
+- Request rate limiting: 300 requests per 15-minute window per IP globally, and 30 requests per 15-minute window on authentication endpoints.
 
 ---
 
-## 📊 Evaluation Benchmark Results
+## Architecture
 
-Evaluated across **30 labeled resume-job pairs** spanning 5 technical disciplines:
+![SmartJobs Architecture Diagram](docs/architecture.png)
 
-| Ranking Engine | Precision@5 | Gain vs Baseline | Latency |
-|:---|:---:|:---:|:---:|
-| **Keyword-Only (BM25 / Jaccard)** | 76.0% | Baseline | ~2 ms |
-| **Embeddings-Only (BGE-Small)** | 76.0% | +0.0% | ~12 ms |
-| **Hybrid AI Engine (SmartJobs)** | **84.0%** | **+8.0% - 10.0%** | ~14 ms |
+### Lifecycle Flows
 
-> Reproduce the benchmark locally: `python worker/eval/evaluate_ranking.py`
+- **Job Ingestion Lifecycle**:
+  `Celery Beat` triggers `crawl_sources` &rarr; Unseen postings queued to `process_job` &rarr; Skills normalized, embeddings computed, and duplicates merged &rarr; Job saved to MongoDB and vector index &rarr; `match_job_to_users` scores job against active profiles &rarr; Qualifying matches generate notifications &rarr; Events dispatched across RabbitMQ to Socket.IO and qualifying emails sent via SMTP.
+
+- **Resume Parsing Lifecycle**:
+  Resume uploaded to `/api/resumes` &rarr; File stored securely and `parse_resume` task queued &rarr; Worker extracts text and redacts PII &rarr; LLM parses structure and Pydantic validates fields &rarr; Skills normalized and embeddings generated &rarr; Profile persisted and `resume.processed` emitted via WebSockets &rarr; Matching pipeline updates candidate recommendation feed.
 
 ---
 
-## 🛠️ Tech Stack Breakdown
+## Tech Stack
 
 | Layer | Technologies |
 |---|---|
-| **Frontend** | React 18, Vite, Tailwind CSS, Lucide Icons, Socket.IO Client, Axios |
-| **Backend API** | Node.js, Express.js, MongoDB (Mongoose), Socket.IO, amqplib, JWT, Multer, Helmet |
-| **Distributed Workers** | Python 3.11, Celery, Celery Beat, FAISS, SentenceTransformers, RapidFuzz, PyMuPDF |
-| **Broker & Cache** | RabbitMQ 3.12 (AMQP broker), FAISS `IndexFlatIP` (In-memory vector cache) |
-| **AI & NLP** | `BAAI/bge-small-en-v1.5`, Google Gemini API / Ollama / Offline Heuristic |
-| **Email & Alerts** | Nodemailer (Gmail SMTP with App Passwords), Brevo, Resend |
+| Frontend | React 18, Vite, Tailwind CSS, React Router, Axios, Socket.IO Client, TanStack Virtual |
+| API Gateway | Node.js, Express, Mongoose, Socket.IO, amqplib, JWT, Multer, Helmet, bcrypt |
+| Background Workers | Python 3.11, Celery, Celery Beat, sentence-transformers, FAISS, RapidFuzz, PyMuPDF, python-docx, Pydantic |
+| Message Broker | RabbitMQ 3.12 (Task queue and topic event exchange) |
+| Storage & Cache | MongoDB 6 (Primary data store), FAISS In-Memory (Vector index), Qdrant (Optional vector store), Redis (Optional cache) |
+| AI & Embeddings | `BAAI/bge-small-en-v1.5` embeddings, Google Gemini / Ollama / Offline Heuristic parser |
 
 ---
 
-## ⚡ Quick Start Guide
+## Quick Start
 
-### Prerequisites
-- [Node.js 18+](https://nodejs.org/)
-- [Python 3.11](https://www.python.org/)
-- [MongoDB](https://www.mongodb.com/try/download/community) (running on `localhost:27017` or MongoDB Atlas)
-- [RabbitMQ](https://www.rabbitmq.com/download.html) (running on `localhost:5672` or Docker)
+### Option A: Docker Compose (Recommended)
 
-### 1. Clone & Configure Environment
+Requires Docker Engine and Compose v2.
+
 ```bash
-git clone https://github.com/<your-username>/smartjobs-ai-aggregator.git
-cd smartjobs-ai-aggregator
+git clone https://github.com/nandinir0626-ux/Smart-Job-Aggregator.git
+cd Smart-Job-Aggregator
 
-# Copy example environment configuration
+# Create environment file from template
 cp .env.example .env
-```
-> Edit `.env` to configure your MongoDB URI, JWT secret, and optional Gmail SMTP / Gemini credentials.
 
----
-
-### Option A: Run with Docker Compose
-```bash
+# Build and start services
 docker compose up --build
 ```
-- Web Application: `http://localhost:5173`
-- Backend API: `http://localhost:5000`
-- RabbitMQ Management: `http://localhost:15672` (guest / guest)
+
+| Service | Address |
+|---|---|
+| Web Application | `http://localhost:5173` |
+| REST API | `http://localhost:5000` (Health check: `/api/health`) |
+| RabbitMQ Management UI | `http://localhost:15672` (Default credentials: `guest` / `guest`) |
+
+*Note: Initial setup downloads the embedding model into a persistent volume cache. When running without external API keys, the application executes fully offline using bundled seed postings, heuristic resume extraction, and console email output.*
 
 ---
 
-### Option B: Local Manual Setup
+### Option B: Local Development
 
-#### Step 1: Start Backend API
+**Prerequisites**: Node.js 18+, Python 3.11, MongoDB running on `localhost:27017`, RabbitMQ running on `localhost:5672`.
+
 ```bash
+# 1. Start Node.js API (Terminal 1)
 cd api
 npm install
-npm start
-```
+npm run dev
 
-#### Step 2: Start Celery Worker & Beat Scheduler
-```bash
+# 2. Start Celery Worker (Terminal 2)
 cd worker
 pip install -r requirements.txt
+# Note: append '-P solo' when running on Windows
+celery -A celery_app.celery worker --loglevel=info
 
-# Terminal 1: Celery Worker (Use -P solo on Windows)
-celery -A celery_app.celery worker --loglevel=info -P solo
-
-# Terminal 2: Celery Beat Scheduler
+# 3. Start Celery Beat Scheduler (Terminal 3)
+cd worker
 celery -A celery_app.celery beat --loglevel=info
-```
 
-#### Step 3: Start Frontend SPA
-```bash
+# 4. Start React Frontend (Terminal 4)
 cd frontend
 npm install
 npm run dev
 ```
 
+### Initial Run & Verification
+1. Open `http://localhost:5173` in your browser and register a new user account.
+2. Enter the verification code (logged to the API console when `EMAIL_PROVIDER=console`).
+3. Navigate to the Profile section and upload a resume (a reference sample is located at `data/sample_resume.pdf`).
+4. View real-time ranked recommendations on the Dashboard and observe the notification counter update as background jobs are ingested.
+
 ---
 
-## 📡 REST API Reference
+## Configuration
+
+Copy `.env.example` to `.env`. All default settings function out-of-the-box for local execution.
+
+### Core Settings
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `MONGO_URI` | `mongodb://localhost:27017/job_aggregator` | MongoDB connection URI |
+| `RABBITMQ_URL` | `amqp://guest:guest@localhost:5672/` | AMQP broker connection |
+| `PORT` | `5000` | Node.js API port |
+| `JWT_SECRET` | None | Secret key for signing authorization tokens |
+| `JWT_EXPIRES_IN` | `7d` | Authorization token expiration period |
+| `FRONTEND_URL` | `http://localhost:5173` | Client origin for CORS and email links |
+| `UPLOAD_DIR` | `./uploads` | Shared resume storage directory |
+
+### AI and Matching Settings
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `LLM_PROVIDER` | `mock` | Resume parsing engine: `gemini`, `ollama`, or `mock` |
+| `GEMINI_API_KEY` | None | API key required when using Google Gemini |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Endpoint for local Ollama instances |
+| `EMBEDDING_MODEL_NAME` | `BAAI/bge-small-en-v1.5` | Pretrained sentence-transformers embedding model |
+| `WEIGHT_SEMANTIC` | `0.50` | Scoring weight for semantic cosine similarity |
+| `WEIGHT_SKILL` | `0.30` | Scoring weight for canonical skill overlap |
+| `WEIGHT_LOCATION` | `0.10` | Scoring weight for remote/location match |
+| `WEIGHT_RECENCY` | `0.10` | Scoring weight for job posting recency |
+| `RECENCY_HALF_LIFE_DAYS`| `14` | Half-life duration in days for recency decay |
+| `COSINE_DEDUPE_THRESHOLD`| `0.92` | Cosine similarity threshold for near-duplicate jobs |
+| `RAPIDFUZZ_SKILL_THRESHOLD`| `90` | Fuzzy matching threshold for skill normalization |
+| `DEFAULT_MIN_MATCH_SCORE`| `0.60` | Default user notification threshold (60%) |
+
+### Crawling and Ingestion
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CRAWL_INTERVAL_MINUTES` | `15` | Frequency of scheduled Celery Beat crawls |
+| `REMOTIVE_API_URL` | `https://remotive.com/api/remote-jobs` | Remotive public API endpoint |
+
+### Email Dispatch
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `EMAIL_PROVIDER` | `console` | Dispatch transport: `smtp`, `brevo`, `resend`, or `console` |
+| `SMTP_HOST` / `SMTP_PORT` | None | SMTP server connection settings |
+| `SMTP_USER` / `SMTP_PASS` | None | SMTP credentials (use an App Password for Gmail) |
+| `BREVO_API_KEY` | None | Brevo transactional API key |
+| `RESEND_API_KEY` | None | Resend API key |
+| `EMAIL_FROM` | `notifications@smartjobs.local` | Default sender email address |
+
+### Optional Infrastructure
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `REDIS_URL` | `redis://127.0.0.1:6379` | Cache backend; falls back to internal memory if omitted |
+| `QDRANT_HOST` / `QDRANT_PORT`| `localhost` / `6333` | Vector database; falls back to FAISS if omitted |
+
+---
+
+## API Reference
+
+Base URL: `http://localhost:5000/api`. Endpoints marked with `[Auth]` require a valid `Authorization: Bearer <jwt>` header.
+
+<details open>
+<summary><strong>Authentication Endpoints</strong></summary>
 
 | Method | Endpoint | Description | Auth Required |
 |---|---|---|:---:|
-| `POST` | `/api/auth/register` | Register new user account | ❌ |
-| `POST` | `/api/auth/login` | Authenticate and obtain JWT token | ❌ |
-| `GET` | `/api/auth/me` | Fetch active profile | ✅ |
-| `PUT` | `/api/users/preferences` | Update job preferences & email settings | ✅ |
-| `POST` | `/api/resumes` | Upload candidate resume (PDF/DOCX) | ✅ |
-| `GET` | `/api/resumes/latest` | Fetch parsed resume profile & normalized skills | ✅ |
-| `PUT` | `/api/resumes/latest` | Manually edit parsed skills & trigger re-indexing | ✅ |
-| `GET` | `/api/jobs` | Paginated job search with multi-filter support | ❌ / ✅ |
-| `GET` | `/api/recommendations` | Get personalized hybrid recommendations | ✅ |
-| `POST` | `/api/saved` | Save job / update status (`saved`, `applied`, etc.) | ✅ |
-| `GET` | `/api/saved` | View saved tracker pipeline | ✅ |
-| `GET` | `/api/notifications` | Fetch unread notifications | ✅ |
-| `PATCH` | `/api/notifications/read-all`| Mark all notifications as read | ✅ |
-| `GET` | `/api/health` | Service health status check | ❌ |
+| `POST` | `/auth/register` | Register user account and dispatch verification code | No |
+| `POST` | `/auth/verify-email` | Confirm account via 6-digit verification code | No |
+| `POST` | `/auth/resend-code` | Request a new verification code | No |
+| `POST` | `/auth/login` | Authenticate credentials and receive JWT | No |
+| `POST` | `/auth/logout` | Invalidate active user session | No |
+| `POST` | `/auth/forgot-password`| Request password reset code via email | No |
+| `POST` | `/auth/reset-password` | Update account password using reset token | No |
+| `GET` | `/auth/me` | Retrieve currently authenticated user profile | Yes |
+
+</details>
+
+<details open>
+<summary><strong>Jobs, Recommendations, and Tracking</strong></summary>
+
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|:---:|
+| `GET` | `/jobs` | Paginated job search with keyword, location, and skill filters | No |
+| `GET` | `/jobs/:id` | Fetch detailed posting data and merged source listings | No |
+| `GET` | `/recommendations` | Retrieve ranked matches with explainability scores | Yes |
+| `POST` | `/saved` | Track a job or update status (saved, applied, interview, rejected) | Yes |
+| `GET` | `/saved` | Retrieve full application tracking pipeline | Yes |
+| `PATCH` | `/saved/:id` | Update job application status or stage notes | Yes |
+| `DELETE` | `/saved/:id` | Remove job listing from application tracker | Yes |
+
+</details>
+
+<details open>
+<summary><strong>Profile, Resumes, and Notifications</strong></summary>
+
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|:---:|
+| `PUT` | `/users/preferences` | Update target roles, locations, threshold, and alert settings | Yes |
+| `POST` | `/resumes` | Upload candidate resume (multipart/form-data, PDF/DOCX) | Yes |
+| `GET` | `/resumes/latest` | Retrieve parsed candidate record and canonical skills | Yes |
+| `PUT` | `/resumes/latest` | Modify extracted skills and trigger embedding re-index | Yes |
+| `GET` | `/notifications` | List user notification history | Yes |
+| `PATCH` | `/notifications/:id/read` | Mark individual notification as read | Yes |
+| `PATCH` | `/notifications/read-all` | Mark all user notifications as read | Yes |
+
+</details>
+
+<details open>
+<summary><strong>Career Intelligence</strong></summary>
+
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|:---:|
+| `POST` | `/career/jobs/:id/tailor-resume` | Generate role-specific resume customization suggestions | Yes |
+| `GET` | `/career/jobs/:id/interview-prep` | Generate targeted interview questions and preparation advice | Yes |
+| `POST` | `/career/jobs/:id/cover-letter` | Draft tailored cover letter based on candidate profile | Yes |
+| `GET` | `/career/skills/:skillName/roadmap` | Retrieve structured learning roadmap for an identified skill | Yes |
+
+</details>
+
+System health endpoint: `GET /health` reports active database, broker, and service statuses.
 
 ---
 
-## 🔒 Security & Privacy Practices
+## Real-Time Events
 
-- **Never Commit Secrets:** `.env` and all credential patterns are strictly barred by `.gitignore`.
-- **Uploaded Document Privacy:** Resume files stored in `uploads/` are excluded from version control.
-- **Rate-Limiting:** Express endpoints protected with `express-rate-limit` to prevent brute force attacks.
-- **Stateless Authentication:** Passwords hashed with `bcryptjs` (salt rounds: 10), requests authorized with standard Bearer JWT tokens.
+| Event (Routing Key) | Delivery Mechanism | Description |
+|---|---|---|
+| `notification.created` | Socket.IO event in room `user:<id>` | High-relevance match or system notification created |
+| `resume.processed` | Socket.IO event in room `user:<id>` | Resume extraction completed or failed |
 
 ---
 
-## 📄 License
-This project is open-source under the [MIT License](LICENSE).
+## Project Structure
+
+```
+.
+├── api/                   # Node.js Express API service
+│   └── src/
+│       ├── controllers/   # Route handlers (auth, jobs, resumes, recommendations, career)
+│       ├── models/        # Mongoose data schemas (User, Resume, Job, SavedJob, Notification)
+│       ├── services/      # Service layer (rabbitmq, socket, cache, email)
+│       └── middleware/    # Authentication, rate limiting, file upload, error handling
+├── worker/                # Python Celery background worker service
+│   ├── sources/           # Ingestion adapters (Remotive, Arbeitnow, Greenhouse, Lever, seed)
+│   ├── tasks/             # Task definitions (crawler, job, resume, notification, email)
+│   ├── ai/                # Embeddings, matcher, deduplicator, normalizers, parsers, FAISS
+│   ├── eval/              # Benchmark evaluation scripts
+│   └── tests/             # Pytest test suite
+├── frontend/              # React 18 single-page application (Vite, Tailwind CSS)
+├── data/                  # Canonical skill taxonomy (431 skills) and 165 seed jobs
+├── scripts/               # Seed generation, testing, and walkthrough guides
+├── docs/                  # Screenshots and architecture assets
+└── docker-compose.yml     # Distributed multi-container definition
+```
+
+---
+
+## Testing and Evaluation
+
+```bash
+# Execute Python worker test suite (deduplication, normalization, schemas, scoring)
+cd worker && pytest
+
+# Execute Node.js API test suite (authentication, route validation, rate limits)
+cd api && npm test
+```
+
+### Ranking Benchmark
+
+Evaluated across 30 labeled resume-job pairs across 5 technical disciplines:
+
+| Ranking Engine | Precision@5 | Latency |
+|---|:---:|:---:|
+| Keyword Matching (BM25 / Jaccard) | 76.0% | ~2 ms |
+| Dense Embeddings Only (BGE-Small) | 76.0% | ~12 ms |
+| **Hybrid Engine (SmartJobs)** | **84.0%** | **~14 ms** |
+
+Reproduce the benchmark evaluation:
+```bash
+python worker/eval/evaluate_ranking.py
+```
+
+---
+
+## Security and Privacy
+
+- **Protected Secrets**: Sensitive configuration keys reside exclusively in `.env`, which is strictly ignored by version control.
+- **Data Privacy**: Uploaded candidate documents stored under `uploads/` are excluded from Git. Personal Identifiable Information (phone numbers, addresses) is scrubbed before LLM submission.
+- **Defensive Safeguards**: Passwords hashed with bcrypt (salt factor: 10). Authentication endpoints enforce strict rate limiting to mitigate brute-force attempts.
+- **Production Recommendations**: Ensure a cryptographically random `JWT_SECRET` is configured, change default RabbitMQ broker credentials, restrict CORS origins to trusted client hosts, and terminate traffic via TLS/HTTPS.
+
+---
+
+## Known Limitations and Roadmap
+
+- **Vector Persistence**: Default vector store operates as an in-memory FAISS index per worker; configure Qdrant for distributed, shared vector persistence across multi-node deployments.
+- **Source Rate Limits**: External job aggregators rely on public endpoints which may enforce rate limits or alter schemas.
+- **Offline Heuristic Parser**: The bundled offline parser utilizes rule-based heuristics and exhibits lower extraction accuracy compared to Gemini or Ollama models.
+- **Future Enhancements**: Expanded benchmark evaluations with statistical confidence bounds, additional ATS ingestion adapters, and automated CI pipelines for backend and worker suites.
+
+---
+
+## Contributing
+
+1. Fork the repository and create a distinct feature branch.
+2. Verify that both `pytest` and `npm test` suites pass before submitting modifications.
+3. To introduce a new job provider, inherit from `JobSource` in `worker/sources/`, implement the `fetch_jobs(limit)` method, and register the class in `worker/sources/__init__.py`.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
