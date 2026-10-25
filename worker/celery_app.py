@@ -20,6 +20,7 @@ celery = Celery(
 # Kombu exchanges and queues
 events_exchange = Exchange("events", type="topic", durable=True)
 default_exchange = Exchange("celery", type="direct", durable=True)
+resumes_exchange = Exchange("resumes", type="direct", durable=True)
 
 celery.conf.update(
     task_serializer="json",
@@ -29,12 +30,14 @@ celery.conf.update(
     enable_utc=True,
     task_default_queue="celery",
     task_queues=(
+        Queue("resumes", resumes_exchange, routing_key="resumes"),
         Queue("celery", default_exchange, routing_key="celery"),
     ),
     task_routes={
+        "tasks.parse_resume": {"queue": "resumes", "routing_key": "resumes"},
+        "tasks.reindex_user_resume": {"queue": "resumes", "routing_key": "resumes"},
         "tasks.crawler_tasks.*": {"queue": "celery"},
         "tasks.job_tasks.*": {"queue": "celery"},
-        "tasks.resume_tasks.*": {"queue": "celery"},
         "tasks.notification_tasks.*": {"queue": "celery"},
         "tasks.email_tasks.*": {"queue": "celery"},
     },

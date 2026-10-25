@@ -1,3 +1,4 @@
+const path = require('path');
 const Resume = require('../models/Resume');
 const rabbitmq = require('../services/rabbitmq');
 
@@ -10,9 +11,11 @@ const uploadResume = async (req, res, next) => {
       });
     }
 
+    const absoluteFilePath = path.resolve(req.file.path);
+
     const resume = await Resume.create({
       userId: req.user._id,
-      filePath: req.file.path,
+      filePath: absoluteFilePath,
       status: 'processing',
     });
 
@@ -21,7 +24,7 @@ const uploadResume = async (req, res, next) => {
       await rabbitmq.sendCeleryTask('tasks.parse_resume', [
         resume._id.toString(),
         req.user._id.toString(),
-        req.file.path,
+        absoluteFilePath,
       ]);
     } catch (mqErr) {
       console.error('[ResumeController] Warning: Failed to send Celery task to RabbitMQ:', mqErr.message);

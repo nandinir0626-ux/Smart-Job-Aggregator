@@ -72,6 +72,11 @@ const connectRabbitMQ = async (retryCount = 5, delayMs = 3000) => {
       await channel.assertQueue('celery', { durable: true });
       await channel.bindQueue('celery', 'celery', 'celery');
 
+      // Ensure dedicated 'resumes' exchange and queue exist for instant user priority
+      await channel.assertExchange('resumes', 'direct', { durable: true });
+      await channel.assertQueue('resumes', { durable: true });
+      await channel.bindQueue('resumes', 'resumes', 'resumes');
+
       console.log('[RabbitMQ] Connected and listeners attached successfully');
       return channel;
     } catch (err) {
@@ -130,8 +135,12 @@ const sendCeleryTask = async (taskName, args = [], kwargs = {}) => {
     },
   };
 
-  channel.publish('celery', 'celery', Buffer.from(bodyJson, 'utf-8'), properties);
-  console.log(`[RabbitMQ] Enqueued Celery task '${taskName}' (id: ${taskId})`);
+  const isResume = taskName.includes('resume');
+  const targetExchange = isResume ? 'resumes' : 'celery';
+  const targetRoutingKey = isResume ? 'resumes' : 'celery';
+
+  channel.publish(targetExchange, targetRoutingKey, Buffer.from(bodyJson, 'utf-8'), properties);
+  console.log(`[RabbitMQ] Enqueued Celery task '${taskName}' to queue '${targetExchange}' (id: ${taskId})`);
   return taskId;
 };
 

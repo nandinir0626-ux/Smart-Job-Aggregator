@@ -53,13 +53,30 @@ class ResumeSchema(BaseModel):
 def extract_text_from_file(file_path: str) -> str:
     path = Path(file_path)
     if not path.exists():
-        raise FileNotFoundError(f"File not found: {file_path}")
+        candidates = [
+            Path(file_path),
+            Path("..") / file_path,
+            Path("../api") / file_path,
+            Path("../uploads") / Path(file_path).name,
+            Path("../api/uploads") / Path(file_path).name,
+            Path("uploads") / Path(file_path).name,
+            Path("api/uploads") / Path(file_path).name,
+        ]
+        found = False
+        for cand in candidates:
+            if cand.exists():
+                path = cand
+                file_path = str(cand)
+                found = True
+                break
+        if not found:
+            raise FileNotFoundError(f"File not found: {file_path}")
 
     ext = path.suffix.lower()
     if ext == ".pdf":
-        return extract_text_from_pdf(file_path)
+        return extract_text_from_pdf(str(path))
     elif ext in [".docx", ".doc"]:
-        return extract_text_from_docx(file_path)
+        return extract_text_from_docx(str(path))
     else:
         raise ValueError(f"Unsupported file format: {ext}. Only PDF and DOCX supported.")
 
