@@ -45,6 +45,7 @@ celery.conf.update(
         "crawl-sources-periodic": {
             "task": "tasks.crawler_tasks.crawl_sources",
             "schedule": crontab(minute=f"*/{CRAWL_INTERVAL_MINUTES}"),
+            "options": {"expires": 900},
         },
     },
     worker_prefetch_multiplier=1,

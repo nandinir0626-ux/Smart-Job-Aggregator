@@ -46,7 +46,7 @@ def crawl_sources(self, source_name=None):
                 if fp in existing_fps:
                     total_skipped += 1
                 else:
-                    process_job.apply_async(args=[j])
+                    process_job.apply_async(args=[j], expires=3600)
                     total_dispatched += 1
 
             logger.info(f"Source '{src.name}': {len(jobs)} fetched, {len(jobs) - len(existing_fps)} new dispatched, {len(existing_fps)} existing skipped.")
