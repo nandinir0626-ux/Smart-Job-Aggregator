@@ -1,0 +1,148 @@
+services:
+  mongo:
+    image: mongo:6.0
+    container_name: smartjobs-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - smartjobs-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: smartjobs-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - smartjobs-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: smartjobs-api
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      MONGO_URI: mongodb://mongo:27017/job_aggregator
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      JWT_SECRET: ${JWT_SECRET:-smartjobs-production-secret-key-32chars}
+      JWT_EXPIRES_IN: 7d
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - shared_uploads:/app/uploads
+      - ./data:/app/data
+    networks:
+      - smartjobs-network
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: smartjobs-worker
+    restart: unless-stopped
+    command: celery -A celery_app.celery worker --loglevel=info --concurrency=2
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      MONGO_URI: mongodb://mongo:27017/job_aggregator
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672/
+      CELERY_RESULT_BACKEND: rpc://
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL_NAME:-BAAI/bge-small-en-v1.5}
+      ADZUNA_APP_ID: ${ADZUNA_APP_ID:-}
+      ADZUNA_APP_KEY: ${ADZUNA_APP_KEY:-}
+      ADZUNA_COUNTRY: ${ADZUNA_COUNTRY:-in}
+      REMOTIVE_API_URL: ${REMOTIVE_API_URL:-https://remotive.com/api/remote-jobs}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-console}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-notifications@smartjobs.local}
+      DATA_DIR: /app/data
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - shared_uploads:/app/uploads
+      - ./data:/app/data
+      - model_cache:/root/.cache
+    networks:
+      - smartjobs-network
+
+  beat:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: smartjobs-beat
+    restart: unless-stopped
+    command: celery -A celery_app.celery beat --loglevel=info
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    environment:
+      MONGO_URI: mongodb://mongo:27017/job_aggregator
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672/
+      CRAWL_INTERVAL_MINUTES: ${CRAWL_INTERVAL_MINUTES:-15}
+    volumes:
+      - ./data:/app/data
+    networks:
+      - smartjobs-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smartjobs-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+    networks:
+      - smartjobs-network
+
+volumes:
+  mongo_data:
+  rabbitmq_data:
+  shared_uploads:
+  model_cache:
+
+networks:
+  smartjobs-network:
+    driver: bridge

@@ -1,0 +1,82 @@
+# ==========================================
+# Environment Variables & Secrets (CRITICAL)
+# ==========================================
+.env
+.env.local
+.env.*.local
+*.env
+*.env.*
+
+# ==========================================
+# Dependencies
+# ==========================================
+node_modules/
+*/node_modules/
+venv/
+*/venv/
+env/
+*/env/
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ==========================================
+# Testing & Cache
+# ==========================================
+.pytest_cache/
+*/.pytest_cache/
+.coverage
+htmlcov/
+
+# ==========================================
+# Builds & Bundled Dist
+# ==========================================
+dist/
+*/dist/
+build/
+*/build/
+
+# ==========================================
+# Uploaded User Resumes & Data (Privacy)
+# ==========================================
+uploads/
+uploads/*
+!uploads/.gitkeep
+api/uploads/
+api/uploads/*
+!api/uploads/.gitkeep
+*.pdf
+*.docx
+*.doc
+
+
+# ==========================================
+# Large Media Files & Videos
+# ==========================================
+*.mp4
+*.mov
+*.avi
+*.mkv
+scratch/
+
+# ==========================================
+# Logs & Process Outputs
+# ==========================================
+*.log
+*/logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+celerybeat-schedule*
+
+
+# ==========================================
+# Operating System & IDE
+# ==========================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

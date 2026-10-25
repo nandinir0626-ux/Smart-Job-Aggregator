@@ -1,0 +1,36 @@
+{
+  "name": "smartjobs-api",
+  "version": "1.0.0",
+  "description": "Smart Real-Time Job Aggregator and Recommendation System API",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest --detectOpenHandles --runInBand --forceExit"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.4",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.2.0",
+    "google-auth-library": "^11.3.1",
+    "helmet": "^7.1.0",
+    "ioredis": "^6.0.0",
+    "joi": "^17.13.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.3.1",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^10.1.7",
+    "resend": "^6.34.1",
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.8.4"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.0",
+    "supertest": "^6.3.4"
+  }
+}
